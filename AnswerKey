@@ -1,1 +1,32 @@
-
+import numpy as np
+def steepest_descent(A, b, x0, tol, maxiter=200000):
+x = np.asarray(x0, dtype=float).copy()
+r = b - A @ x
+bnorm = np.linalg.norm(b)
+history = [np.linalg.norm(r) / bnorm]
+for k in range(maxiter):
+if history[-1] <= tol: return x, np.array(history)
+Ar = A @ r
+denom = r @ Ar
+if denom <= 0: raise ValueError('A is not SPD')
+alpha = (r @ r) / denom
+x += alpha * r
+r -= alpha * Ar
+history.append(np.linalg.norm(r) / bnorm)
+raise RuntimeError('maximum iteration count reached')
+A = np.loadtxt('A.dat', delimiter=',')
+assert np.allclose(A, A.T)
+n = A.shape[0]; ones = np.ones(n); zero = np.zeros(n)
+b = A @ ones
+x, residuals = steepest_descent(A, b, zero, 1e-10)
+solution_error = np.linalg.norm(x - ones) / np.linalg.norm(ones)
+eigenvalues, Q = np.linalg.eigh(A)
+qmin, qmax = Q[:, 0], Q[:, -1]
+kappa = eigenvalues[-1] / eigenvalues[0]
+eta = 1e-4; xstar = qmax; bstar = A @ xstar
+for q in (qmax, qmin):
+db = eta * np.linalg.norm(bstar) * q
+xtilde, hist = steepest_descent(A, bstar + db, zero, 1e-12)
+rel_b = np.linalg.norm(db) / np.linalg.norm(bstar)
+rel_x = np.linalg.norm(xtilde - xstar) / np.linalg.norm(xstar)
+print(rel_b, rel_x, rel_x / rel_b, hist[-1], len(hist)-1)
